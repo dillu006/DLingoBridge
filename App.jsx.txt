@@ -1,0 +1,687 @@
+import { useState, useEffect } from "react";
+
+const COUNTRIES = [
+  { name: "India", code: "+91", flag: "🇮🇳", lang: "Telugu" },
+  { name: "USA", code: "+1", flag: "🇺🇸", lang: "English" },
+  { name: "Japan", code: "+81", flag: "🇯🇵", lang: "Japanese" },
+  { name: "Germany", code: "+49", flag: "🇩🇪", lang: "German" },
+  { name: "Brazil", code: "+55", flag: "🇧🇷", lang: "Portuguese" },
+  { name: "France", code: "+33", flag: "🇫🇷", lang: "French" },
+];
+
+const CONTACTS = [
+  { name: "Ravi Kumar", flag: "🇮🇳", lang: "Telugu", code: "+91", num: "98765 43210" },
+  { name: "John Smith", flag: "🇺🇸", lang: "English", code: "+1", num: "555 987 6543" },
+  { name: "Yuki Tanaka", flag: "🇯🇵", lang: "Japanese", code: "+81", num: "90 1234 5678" },
+  { name: "Maria Santos", flag: "🇧🇷", lang: "Portuguese", code: "+55", num: "11 98765 4321" },
+  { name: "Hans Müller", flag: "🇩🇪", lang: "German", code: "+49", num: "170 123 4567" },
+];
+
+const RECENT = [
+  { name: "Ravi Kumar", flag: "🇮🇳", lang: "Telugu", time: "2 min ago", type: "in" },
+  { name: "John Smith", flag: "🇺🇸", lang: "English", time: "1 hr ago", type: "out" },
+  { name: "Yuki Tanaka", flag: "🇯🇵", lang: "Japanese", time: "Yesterday", type: "missed" },
+  { name: "Maria Santos", flag: "🇧🇷", lang: "Portuguese", time: "2 days ago", type: "in" },
+];
+
+const TRANS = [
+  { a: "నమస్కారం! ఎలా ఉన్నారు?", b: "Hello! How are you?" },
+  { a: "I'm great, thanks!", b: "నేను బాగున్నాను, ధన్యవాదాలు!" },
+  { a: "మనం రేపు కలుసుకోవచ్చా?", b: "Can we meet tomorrow?" },
+  { a: "Sure, 5 PM works for me!", b: "సరే, సాయంత్రం 5 గంటలు!" },
+];
+
+export default function DLingo() {
+  const [tab, setTab] = useState("dial");
+  const [num, setNum] = useState("");
+  const [country, setCountry] = useState(COUNTRIES[0]);
+  const [picker, setPicker] = useState(false);
+  const [call, setCall] = useState(null);
+  const [secs, setSecs] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [transOn, setTransOn] = useState(true);
+  const [feed, setFeed] = useState([]);
+  const [tIdx, setTIdx] = useState(0);
+  const [typing, setTyping] = useState(false);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!call) return;
+    const t = setInterval(() => setSecs((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [call]);
+
+  useEffect(() => {
+    if (!call || !transOn) return;
+    const t = setTimeout(() => {
+      setTyping(true);
+      setTimeout(() => {
+        setTyping(false);
+        setFeed((f) => [TRANS[tIdx % TRANS.length], ...f].slice(0, 5));
+        setTIdx((i) => i + 1);
+      }, 1400);
+    }, 2800);
+    return () => clearTimeout(t);
+  }, [call, feed, transOn]);
+
+  const fmt = (s) =>
+    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const dialBtn = (d) => setNum((n) => (n.length < 12 ? n + d : n));
+  const startCall = (info) => {
+    setCall(info);
+    setSecs(0);
+    setFeed([]);
+    setTIdx(0);
+    setMuted(false);
+    setTyping(false);
+  };
+  const endCall = () => {
+    setCall(null);
+    setSecs(0);
+  };
+  const filtered = CONTACTS.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (call)
+    return (
+      <div
+        style={{
+          background: "#0f172a",
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontFamily: "system-ui,sans-serif",
+        }}
+      >
+        <div
+          style={{
+            width: 360,
+            background: "#1e293b",
+            borderRadius: 28,
+            overflow: "hidden",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* Call Header */}
+          <div
+            style={{
+              background: "linear-gradient(135deg,#1d4ed8,#0ea5e9)",
+              padding: "32px 24px 24px",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 56 }}>{call.flag}</div>
+            <div
+              style={{ color: "#fff", fontSize: 22, fontWeight: 700, marginTop: 8 }}
+            >
+              {call.name}
+            </div>
+            <div
+              style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 4 }}
+            >
+              {call.code} {call.num}
+            </div>
+            <div style={{ color: "#7dd3fc", fontSize: 13, marginTop: 6 }}>
+              🌐 Telugu ↔ {call.lang}
+            </div>
+            <div
+              style={{ color: "#fff", fontSize: 22, fontWeight: 600, marginTop: 10 }}
+            >
+              {fmt(secs)}
+            </div>
+          </div>
+
+          {/* Translation Feed */}
+          <div
+            style={{ padding: "16px 20px", minHeight: 200, background: "#0f172a" }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <span
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                }}
+              >
+                LIVE TRANSLATION
+              </span>
+              <button
+                onClick={() => setTransOn((t) => !t)}
+                style={{
+                  background: transOn ? "#16a34a" : "#475569",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 20,
+                  padding: "3px 12px",
+                  fontSize: 11,
+                  cursor: "pointer",
+                }}
+              >
+                {transOn ? "● ON" : "○ OFF"}
+              </button>
+            </div>
+
+            {typing && (
+              <div
+                style={{
+                  background: "#1e293b",
+                  borderRadius: 12,
+                  padding: "8px 14px",
+                  marginBottom: 8,
+                  display: "inline-block",
+                }}
+              >
+                <span style={{ color: "#60a5fa", fontSize: 18, letterSpacing: 3 }}>
+                  ●●●
+                </span>
+              </div>
+            )}
+
+            {feed.map((m, i) => (
+              <div
+                key={i}
+                style={{ marginBottom: 10, opacity: Math.max(1 - i * 0.18, 0.2) }}
+              >
+                <div
+                  style={{
+                    background: "#1e293b",
+                    borderRadius: "12px 12px 12px 3px",
+                    padding: "8px 12px",
+                    display: "inline-block",
+                    maxWidth: "85%",
+                    marginBottom: 4,
+                  }}
+                >
+                  <div style={{ color: "#e2e8f0", fontSize: 13 }}>{m.a}</div>
+                </div>
+                <br />
+                <div
+                  style={{
+                    background: "#1d4ed8",
+                    borderRadius: "3px 12px 12px 12px",
+                    padding: "8px 12px",
+                    display: "inline-block",
+                    maxWidth: "85%",
+                  }}
+                >
+                  <div style={{ color: "#bfdbfe", fontSize: 13 }}>{m.b}</div>
+                </div>
+              </div>
+            ))}
+
+            {feed.length === 0 && !typing && (
+              <div
+                style={{
+                  color: "#475569",
+                  fontSize: 13,
+                  textAlign: "center",
+                  marginTop: 40,
+                }}
+              >
+                Translation will appear here...
+              </div>
+            )}
+          </div>
+
+          {/* Call Controls */}
+          <div
+            style={{ padding: "16px 24px 28px", background: "#1e293b" }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-around",
+                marginBottom: 20,
+              }}
+            >
+              {[
+                {
+                  icon: muted ? "🔇" : "🎤",
+                  label: muted ? "Unmute" : "Mute",
+                  fn: () => setMuted((m) => !m),
+                  on: muted,
+                },
+                { icon: "🔊", label: "Speaker", fn: () => {}, on: false },
+                {
+                  icon: "💬",
+                  label: "Translate",
+                  fn: () => setTransOn((t) => !t),
+                  on: transOn,
+                },
+              ].map((b, i) => (
+                <div key={i} style={{ textAlign: "center" }}>
+                  <button
+                    onClick={b.fn}
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      border: "none",
+                      background: b.on ? "#1d4ed8" : "#334155",
+                      fontSize: 22,
+                      cursor: "pointer",
+                      margin: "0 auto 6px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {b.icon}
+                  </button>
+                  <div style={{ color: "#94a3b8", fontSize: 11 }}>{b.label}</div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={endCall}
+              style={{
+                width: "100%",
+                padding: 16,
+                background: "#dc2626",
+                color: "#fff",
+                border: "none",
+                borderRadius: 16,
+                fontSize: 18,
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              📵 End Call
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+  return (
+    <div
+      style={{
+        background: "#f1f5f9",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        fontFamily: "system-ui,sans-serif",
+        paddingTop: 24,
+      }}
+    >
+      <div
+        style={{
+          width: 360,
+          background: "#fff",
+          borderRadius: 28,
+          overflow: "hidden",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.1)",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            background: "linear-gradient(135deg,#1d4ed8,#0ea5e9)",
+            padding: "28px 24px 20px",
+          }}
+        >
+          <div style={{ color: "#fff", fontSize: 24, fontWeight: 800 }}>
+            🌐 D Lingo
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>
+            Live Call Translator
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0" }}>
+          {[
+            ["dial", "📞 Dial"],
+            ["contacts", "👥 Contacts"],
+            ["recent", "🕐 Recent"],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              style={{
+                flex: 1,
+                padding: "13px 0",
+                border: "none",
+                background: "none",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
+                color: tab === id ? "#1d4ed8" : "#94a3b8",
+                borderBottom:
+                  tab === id ? "2px solid #1d4ed8" : "2px solid transparent",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* DIAL PAD */}
+        {tab === "dial" && (
+          <div style={{ padding: "20px 24px 28px" }}>
+            <button
+              onClick={() => setPicker((p) => !p)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+                fontSize: 14,
+              }}
+            >
+              <span>
+                {country.flag} {country.name}{" "}
+                <span style={{ color: "#64748b" }}>{country.code}</span>
+              </span>
+              <span style={{ color: "#94a3b8" }}>▼</span>
+            </button>
+
+            {picker && (
+              <div
+                style={{
+                  background: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  marginBottom: 10,
+                  maxHeight: 180,
+                  overflowY: "auto",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                }}
+              >
+                {COUNTRIES.map((c) => (
+                  <button
+                    key={c.name}
+                    onClick={() => {
+                      setCountry(c);
+                      setPicker(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "11px 16px",
+                      border: "none",
+                      background: country.name === c.name ? "#eff6ff" : "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 14,
+                      display: "flex",
+                      gap: 10,
+                    }}
+                  >
+                    <span>{c.flag}</span>
+                    <span style={{ flex: 1 }}>{c.name}</span>
+                    <span style={{ color: "#64748b" }}>{c.code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div
+              style={{
+                background: "#eff6ff",
+                borderRadius: 10,
+                padding: "8px 14px",
+                marginBottom: 14,
+                fontSize: 13,
+                color: "#1d4ed8",
+              }}
+            >
+              🌐 Telugu ↔ {country.lang} — Auto detected
+            </div>
+
+            <div
+              style={{
+                textAlign: "center",
+                padding: "10px 0 14px",
+                minHeight: 50,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 26,
+                  fontWeight: 300,
+                  color: num ? "#0f172a" : "#cbd5e1",
+                  letterSpacing: 2,
+                }}
+              >
+                {num ? `${country.code} ${num}` : "Enter number"}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3,1fr)",
+                gap: 10,
+                marginBottom: 14,
+              }}
+            >
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map(
+                (d) => (
+                  <button
+                    key={d}
+                    onClick={() => dialBtn(d)}
+                    style={{
+                      padding: "15px",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 12,
+                      fontSize: 20,
+                      cursor: "pointer",
+                      fontWeight: 500,
+                      color: "#0f172a",
+                    }}
+                  >
+                    {d}
+                  </button>
+                )
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() =>
+                  num &&
+                  startCall({
+                    name: `${country.code} ${num}`,
+                    flag: country.flag,
+                    lang: country.lang,
+                    code: country.code,
+                    num,
+                  })
+                }
+                style={{
+                  flex: 1,
+                  padding: 16,
+                  background: num ? "#16a34a" : "#86efac",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 16,
+                  fontSize: 22,
+                  cursor: num ? "pointer" : "not-allowed",
+                }}
+              >
+                📞
+              </button>
+              <button
+                onClick={() => setNum((n) => n.slice(0, -1))}
+                style={{
+                  padding: "16px 22px",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 16,
+                  fontSize: 18,
+                  cursor: "pointer",
+                }}
+              >
+                ⌫
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CONTACTS */}
+        {tab === "contacts" && (
+          <div style={{ padding: "16px 20px" }}>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="🔍 Search contacts..."
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                fontSize: 14,
+                marginBottom: 12,
+                boxSizing: "border-box",
+                outline: "none",
+              }}
+            />
+            {filtered.map((c, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "12px 0",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: "#eff6ff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 24,
+                    flexShrink: 0,
+                  }}
+                >
+                  {c.flag}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 15 }}>
+                    {c.name}
+                  </div>
+                  <div style={{ color: "#64748b", fontSize: 12 }}>
+                    {c.code} {c.num} · {c.lang}
+                  </div>
+                </div>
+                <button
+                  onClick={() => startCall(c)}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    background: "#16a34a",
+                    border: "none",
+                    borderRadius: "50%",
+                    color: "#fff",
+                    fontSize: 16,
+                    cursor: "pointer",
+                  }}
+                >
+                  📞
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* RECENT CALLS */}
+        {tab === "recent" && (
+          <div style={{ padding: "16px 20px" }}>
+            {RECENT.map((r, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "12px 0",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: "#f8fafc",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 24,
+                    flexShrink: 0,
+                  }}
+                >
+                  {r.flag}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 15 }}>
+                    {r.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color:
+                        r.type === "missed"
+                          ? "#dc2626"
+                          : r.type === "in"
+                          ? "#16a34a"
+                          : "#64748b",
+                    }}
+                  >
+                    {r.type === "missed"
+                      ? "↙ Missed"
+                      : r.type === "in"
+                      ? "↙ Incoming"
+                      : "↗ Outgoing"}{" "}
+                    · {r.time}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94a3b8" }}>🌐 {r.lang}</div>
+                </div>
+                <button
+                  onClick={() => startCall({ ...r, code: "", num: "" })}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    background: "#1d4ed8",
+                    border: "none",
+                    borderRadius: "50%",
+                    color: "#fff",
+                    fontSize: 16,
+                    cursor: "pointer",
+                  }}
+                >
+                  📞
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
